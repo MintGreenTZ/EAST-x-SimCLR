@@ -2,6 +2,7 @@ import torch
 from torch.utils import data
 from torch import nn
 from torch.optim import lr_scheduler
+from torchvision import transforms
 from dataset import custom_dataset
 from model import EAST
 from loss import Loss
@@ -10,7 +11,26 @@ import time
 import numpy as np
 
 
-def train(train_img_path, train_gt_path, pths_path, batch_size, lr, num_workers, epoch_iter, interval):
+def train(train_img_path, train_gt_path, pths_path, batch_size, lr, num_workers, epoch_iter, interval, s):
+	img_files = os.listdir(train_img_path)
+	img_files = sorted([os.path.join(train_img_path, img_file) for img_file in img_files])
+
+	color_jitter = transforms.ColorJitter(0.8 * s, 0.8 * s, 0.8 * s, 0.2 * s)
+	data_transforms = transforms.Compose([transforms.RandomResizedCrop(size=self.input_shape[0]),
+										  transforms.RandomHorizontalFlip(),
+										  transforms.RandomApply([color_jitter], p=0.8),
+										  transforms.RandomGrayscale(p=0.2),
+										  GaussianBlur(kernel_size=int(0.1 * self.input_shape[0])),
+										  transforms.ToTensor()])
+
+	print("transforms done")
+
+	for i, img_file in enumerate(img_files):
+		im = Image.open(img_file)
+		print(im)
+		if i == 2:
+			break
+
 	file_num = len(os.listdir(train_img_path))
 	trainset = custom_dataset(train_img_path, train_gt_path)
 	train_loader = data.DataLoader(trainset, batch_size=batch_size, \
@@ -63,5 +83,6 @@ if __name__ == '__main__':
 	num_workers    = 4
 	epoch_iter     = 600
 	save_interval  = 5
-	train(train_img_path, train_gt_path, pths_path, batch_size, lr, num_workers, epoch_iter, save_interval)	
+	s 			   = 1
+	train(train_img_path, train_gt_path, pths_path, batch_size, lr, num_workers, epoch_iter, save_interval, s)
 	
