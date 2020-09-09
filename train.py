@@ -4,8 +4,10 @@ from torch import nn
 from torch.optim import lr_scheduler
 from torchvision import transforms
 from dataset import custom_dataset
+from PIL import Image
 from model import EAST
 from loss import Loss
+from gaussian_blur import GaussianBlur
 import os
 import time
 import numpy as np
@@ -15,21 +17,17 @@ def train(train_img_path, train_gt_path, pths_path, batch_size, lr, num_workers,
 	img_files = os.listdir(train_img_path)
 	img_files = sorted([os.path.join(train_img_path, img_file) for img_file in img_files])
 
+	pic_size = 512
+
 	color_jitter = transforms.ColorJitter(0.8 * s, 0.8 * s, 0.8 * s, 0.2 * s)
-	data_transforms = transforms.Compose([transforms.RandomResizedCrop(size=self.input_shape[0]),
+	data_transforms = transforms.Compose([transforms.RandomResizedCrop(size=pic_size),
 										  transforms.RandomHorizontalFlip(),
 										  transforms.RandomApply([color_jitter], p=0.8),
 										  transforms.RandomGrayscale(p=0.2),
-										  GaussianBlur(kernel_size=int(0.1 * self.input_shape[0])),
+										  GaussianBlur(kernel_size=int(0.1 * pic_size)),
 										  transforms.ToTensor()])
-
+	img2tensor = transforms.Compose([transforms.ToTensor()])
 	print("transforms done")
-
-	for i, img_file in enumerate(img_files):
-		im = Image.open(img_file)
-		print(im)
-		if i == 2:
-			break
 
 	file_num = len(os.listdir(train_img_path))
 	trainset = custom_dataset(train_img_path, train_gt_path)
@@ -47,12 +45,32 @@ def train(train_img_path, train_gt_path, pths_path, batch_size, lr, num_workers,
 	optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 	scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[epoch_iter//2], gamma=0.1)
 
+	# for i, img_file in enumerate(img_files):
+	# 	im = Image.open(img_file)
+	# 	print(img2tensor(im))
+	# 	data_transforms(im)
+	# 	print(img2tensor(im))
+	# 	print(data_transforms(im))
+	# 	data_transforms(im)
+	# 	print(img2tensor(im))
+	# 	print(data_transforms(im))
+	# 	print(data_transforms(im).size())
+	# 	if i == 2:
+	# 		break
+	#
+	# print("img finished")
+
+
 	for epoch in range(epoch_iter):	
 		model.train()
 		scheduler.step()
 		epoch_loss = 0
 		epoch_time = time.time()
 		for i, (img, gt_score, gt_geo, ignored_map) in enumerate(train_loader):
+			print(img.size())
+			print(gt_score.size())
+			print(gt_geo.size())
+			print(ignored_map.size())
 			start_time = time.time()
 			img, gt_score, gt_geo, ignored_map = img.to(device), gt_score.to(device), gt_geo.to(device), ignored_map.to(device)
 			pred_score, pred_geo = model(img)
