@@ -66,16 +66,31 @@ def train(train_img_path, train_gt_path, pths_path, batch_size, lr, num_workers,
 		scheduler.step()
 		epoch_loss = 0
 		epoch_time = time.time()
-		for i, (img, gt_score, gt_geo, ignored_map) in enumerate(train_loader):
-			print(img.size())
-			print(gt_score.size())
-			print(gt_geo.size())
-			print(ignored_map.size())
+		for i, (img1, gt_score1, gt_geo1, ignored_map1,
+				img2, gt_score2, gt_geo2, ignored_map2) in enumerate(train_loader):
+			# print(img.size())
+			# print(gt_score.size())
+			# print(gt_geo.size())
+			# print(ignored_map.size())
+
 			start_time = time.time()
-			img, gt_score, gt_geo, ignored_map = img.to(device), gt_score.to(device), gt_geo.to(device), ignored_map.to(device)
-			pred_score, pred_geo = model(img)
-			loss = criterion(gt_score, pred_score, gt_geo, pred_geo, ignored_map)
+
+
+			img1, gt_score1, gt_geo1, ignored_map1 = img1.to(device), gt_score1.to(device), gt_geo1.to(device), ignored_map1.to(device)
+			pred_score, pred_geo = model(img1)
+			loss = criterion(gt_score1, pred_score, gt_geo1, pred_geo, ignored_map1)
 			
+			epoch_loss += loss.item()
+			optimizer.zero_grad()
+			loss.backward()
+			optimizer.step()
+
+
+			img2, gt_score2, gt_geo2, ignored_map2 = img2.to(device), gt_score2.to(device), gt_geo2.to(
+				device), ignored_map2.to(device)
+			pred_score, pred_geo = model(img2)
+			loss = criterion(gt_score2, pred_score, gt_geo2, pred_geo, ignored_map2)
+
 			epoch_loss += loss.item()
 			optimizer.zero_grad()
 			loss.backward()

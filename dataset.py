@@ -366,14 +366,36 @@ def extract_vertices(lines):
 		labels.append(label)
 	return np.array(vertices), np.array(labels)
 
+def img_processing():
+	img = Image.open(self.img_files[index])
+	img, vertices = adjust_height(img, vertices)
+	img, vertices = rotate_img(img, vertices)
+	img, vertices = crop_img(img, vertices, labels, self.length)
+	naive_transform = transforms.Compose([transforms.ColorJitter(0.5, 0.5, 0.5, 0.25), \
+										  transforms.ToTensor(), \
+										  transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))])
+	base_img = naive_transform(img)
+
+	score_map, geo_map, ignored_map = get_score_geo(img, vertices, labels, self.scale, self.length)
+	return transform(img), score_map, geo_map, ignored_map
 	
 class custom_dataset(data.Dataset):
-	def __init__(self, img_path, gt_path, scale=0.25, length=512):
+	def __init__(self, img_path, gt_path, scale=0.25, length=512, s=1):
 		super(custom_dataset, self).__init__()
 		self.img_files = [os.path.join(img_path, img_file) for img_file in sorted(os.listdir(img_path))]
 		self.gt_files  = [os.path.join(gt_path, gt_file) for gt_file in sorted(os.listdir(gt_path))]
 		self.scale = scale
 		self.length = length
+
+		color_jitter = transforms.ColorJitter(0.8 * s, 0.8 * s, 0.8 * s, 0.2 * s)
+		data_transforms = transforms.Compose([transforms.RandomResizedCrop(size=length),
+											  transforms.RandomHorizontalFlip(),
+											  transforms.RandomApply([color_jitter], p=0.8),
+											  transforms.RandomGrayscale(p=0.2),
+											  GaussianBlur(kernel_size=int(0.1 * length)),
+											  transforms.ToTensor()])
+		self.img_files_i = [data_transforms(Image.open(img)) for img in self.img_files]
+		self.img_files_j = [data_transforms(Image.open(img)) for img in self.img_files]
 
 	def __len__(self):
 		return len(self.img_files)
@@ -381,16 +403,25 @@ class custom_dataset(data.Dataset):
 	def __getitem__(self, index):
 		with open(self.gt_files[index], 'r') as f:
 			lines = f.readlines()
+
+		adjust_transform = transforms.Compose([transforms.ColorJitter(0.5, 0.5, 0.5, 0.25), \
+											   transforms.ToTensor(), \
+											   transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))])
+
 		vertices, labels = extract_vertices(lines)
-		
-		img = Image.open(self.img_files[index])
-		img, vertices = adjust_height(img, vertices) 
-		img, vertices = rotate_img(img, vertices)
-		img, vertices = crop_img(img, vertices, labels, self.length) 
-		transform = transforms.Compose([transforms.ColorJitter(0.5, 0.5, 0.5, 0.25), \
-                                        transforms.ToTensor(), \
-                                        transforms.Normalize(mean=(0.5,0.5,0.5),std=(0.5,0.5,0.5))])
-		
-		score_map, geo_map, ignored_map = get_score_geo(img, vertices, labels, self.scale, self.length)
-		return transform(img), score_map, geo_map, ignored_map
+		img1 = Image.open(self.img_files_i[index])
+		img1, vertices = adjust_height(img1, vertices)
+		img1, vertices = rotate_img(img1, vertices)
+		img1, vertices = crop_img(img1, vertices, labels, self.length)
+		score_map1, geo_map1, ignored_map1 = get_score_geo(img1, vertices, labels, self.scale, self.length)
+
+		vertices, labels = extract_vertices(lines)
+		img2 = Image.open(self.img_files_j[index])
+		img2, vertices = adjust_height(img2, vertices)
+		img2, vertices = rotate_img(img2, vertices)
+		img2, vertices = crop_img(img2, vertices, labels, self.length)
+		score_map2, geo_map2, ignored_map2 = get_score_geo(img2, vertices, labels, self.scale, self.length)
+
+		return adjust_transform(img1), score_map1, geo_map1, ignored_map1, \
+			   adjust_transform(img2), score_map2, geo_map2, ignored_map2
 
