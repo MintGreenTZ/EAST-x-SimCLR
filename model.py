@@ -7,6 +7,8 @@ import math
 
 cfg = [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M']
 
+adjusetd_size = 128
+cf_size = 256
 
 def make_layers(cfg, batch_norm=False):
 	layers = []
@@ -143,6 +145,7 @@ class output(nn.Module):
 		self.conv3 = nn.Conv2d(32, 1, 1)
 		self.sigmoid3 = nn.Sigmoid()
 		self.scope = 512
+		self.fc = nn.Linear(adjusetd_size * adjusetd_size, cf_size)
 		for m in self.modules():
 			if isinstance(m, nn.Conv2d):
 				nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
@@ -153,8 +156,9 @@ class output(nn.Module):
 		score = self.sigmoid1(self.conv1(x))
 		loc   = self.sigmoid2(self.conv2(x)) * self.scope
 		angle = (self.sigmoid3(self.conv3(x)) - 0.5) * math.pi
-		geo   = torch.cat((loc, angle), 1) 
-		return score, geo
+		geo   = torch.cat((loc, angle), 1)
+		linenered_score = self.fc(score.view(x.size(0), -1))
+		return score, geo, linenered_score
 		
 	
 class EAST(nn.Module):

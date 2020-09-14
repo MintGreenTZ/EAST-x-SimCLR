@@ -396,10 +396,10 @@ class custom_dataset(data.Dataset):
 		print(type(tensor2PIL(data_transforms(Image.open(self.img_files[0])))))
 		print(tensor2PIL(data_transforms(Image.open(self.img_files[0]))))
 
+		print("len")
+		print(len(self.img_files))
 		self.img_files_i = [tensor2PIL(data_transforms(Image.open(img))) for img in self.img_files]
 		self.img_files_j = [tensor2PIL(data_transforms(Image.open(img))) for img in self.img_files]
-		print("!!!")
-		print(type(self.img_files_i[0]))
 		print("custom_dataset __init__ finished")
 
 	def __len__(self):
@@ -415,6 +415,7 @@ class custom_dataset(data.Dataset):
 
 		vertices, labels = extract_vertices(lines)
 		img1 = self.img_files_i[index]
+		# img1 = Image.open(self.img_files[index])
 		img1, vertices = adjust_height(img1, vertices)
 		img1, vertices = rotate_img(img1, vertices)
 		img1, vertices = crop_img(img1, vertices, labels, self.length)
@@ -422,6 +423,7 @@ class custom_dataset(data.Dataset):
 
 		vertices, labels = extract_vertices(lines)
 		img2 = self.img_files_j[index]
+		# img2 = Image.open(self.img_files[index])
 		img2, vertices = adjust_height(img2, vertices)
 		img2, vertices = rotate_img(img2, vertices)
 		img2, vertices = crop_img(img2, vertices, labels, self.length)
