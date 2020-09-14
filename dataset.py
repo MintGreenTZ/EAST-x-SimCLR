@@ -7,6 +7,7 @@ import os
 import torch
 import torchvision.transforms as transforms
 from torch.utils import data
+from gaussian_blur import GaussianBlur
 
 
 def cal_distance(x1, y1, x2, y2):
@@ -366,19 +367,12 @@ def extract_vertices(lines):
 		labels.append(label)
 	return np.array(vertices), np.array(labels)
 
-def img_processing():
-	img = Image.open(self.img_files[index])
-	img, vertices = adjust_height(img, vertices)
-	img, vertices = rotate_img(img, vertices)
-	img, vertices = crop_img(img, vertices, labels, self.length)
-	naive_transform = transforms.Compose([transforms.ColorJitter(0.5, 0.5, 0.5, 0.25), \
-										  transforms.ToTensor(), \
-										  transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))])
-	base_img = naive_transform(img)
+def tensor2PIL(tensor):
+    image = tensor.cpu().clone()
+    image = image.squeeze(0)
+    image = transforms.ToPILImage()(image)
+    return image
 
-	score_map, geo_map, ignored_map = get_score_geo(img, vertices, labels, self.scale, self.length)
-	return transform(img), score_map, geo_map, ignored_map
-	
 class custom_dataset(data.Dataset):
 	def __init__(self, img_path, gt_path, scale=0.25, length=512, s=1):
 		super(custom_dataset, self).__init__()
@@ -394,8 +388,19 @@ class custom_dataset(data.Dataset):
 											  transforms.RandomGrayscale(p=0.2),
 											  GaussianBlur(kernel_size=int(0.1 * length)),
 											  transforms.ToTensor()])
-		self.img_files_i = [data_transforms(Image.open(img)) for img in self.img_files]
-		self.img_files_j = [data_transforms(Image.open(img)) for img in self.img_files]
+		print("custom_dataset __init__ begin")
+		# self.img_files = self.img_files[0:5]
+		print(type(self.img_files[0]))
+		print(type(Image.open(self.img_files[0]).convert("RGB")))
+		print(type(data_transforms(Image.open(self.img_files[0]))))
+		print(type(tensor2PIL(data_transforms(Image.open(self.img_files[0])))))
+		print(tensor2PIL(data_transforms(Image.open(self.img_files[0]))))
+
+		self.img_files_i = [tensor2PIL(data_transforms(Image.open(img))) for img in self.img_files]
+		self.img_files_j = [tensor2PIL(data_transforms(Image.open(img))) for img in self.img_files]
+		print("!!!")
+		print(type(self.img_files_i[0]))
+		print("custom_dataset __init__ finished")
 
 	def __len__(self):
 		return len(self.img_files)
@@ -409,14 +414,14 @@ class custom_dataset(data.Dataset):
 											   transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))])
 
 		vertices, labels = extract_vertices(lines)
-		img1 = Image.open(self.img_files_i[index])
+		img1 = self.img_files_i[index]
 		img1, vertices = adjust_height(img1, vertices)
 		img1, vertices = rotate_img(img1, vertices)
 		img1, vertices = crop_img(img1, vertices, labels, self.length)
 		score_map1, geo_map1, ignored_map1 = get_score_geo(img1, vertices, labels, self.scale, self.length)
 
 		vertices, labels = extract_vertices(lines)
-		img2 = Image.open(self.img_files_j[index])
+		img2 = self.img_files_j[index]
 		img2, vertices = adjust_height(img2, vertices)
 		img2, vertices = rotate_img(img2, vertices)
 		img2, vertices = crop_img(img2, vertices, labels, self.length)
