@@ -52,6 +52,7 @@ class Loss(nn.Module):
 		self.mask_samples_from_same_repr = self._get_correlated_mask().type(torch.bool)
 		self.similarity_function = self._get_similarity_function(use_cosine_similarity)
 		self.criterion = torch.nn.CrossEntropyLoss(reduction="sum")
+		self.model = SimCLRProjector().to(self.device)
 
 	def _get_similarity_function(self, use_cosine_similarity):
 		if use_cosine_similarity:
@@ -100,9 +101,9 @@ class Loss(nn.Module):
 
 	def nt_xent_loss(self, zis, zjs):
 		representations = torch.cat([zjs, zis], dim=0)
-
+		# print(representations[0,...])
 		similarity_matrix = self.similarity_function(representations, representations)
-
+		# print((similarity_matrix.data.cpu().numpy()*100).astype(np.int))
 		# filter out the scores from the positive samples
 		l_pos = torch.diag(similarity_matrix, self.batch_size)
 		r_pos = torch.diag(similarity_matrix, -self.batch_size)
@@ -119,13 +120,12 @@ class Loss(nn.Module):
 		return loss / (2 * self.batch_size)
 
 	def simclr_loss(self, xis, xjs):
-		model = SimCLRProjector().to(self.device)
 
 		# print("size of xis")
 		# print(xis.size())
 
-		zis = model(xis)  # [N,C]
-		zjs = model(xjs)  # [N,C]
+		zis = self.model(xis)  # [N,C]
+		zjs = self.model(xjs)  # [N,C]
 
 		# normalize projection feature vectors
 		zis = F.normalize(zis, dim=1)
@@ -134,11 +134,16 @@ class Loss(nn.Module):
 		loss = self.nt_xent_loss(zis, zjs)
 		return loss
 
-	def forward(self, gt_score1, pred_score1, gt_geo1, pred_geo1, ignored_map1, liner_score1,
-				gt_score2, pred_score2, gt_geo2, pred_geo2, ignored_map2, liner_score2):
+	def forward(self, gt_score1, pred_score1, gt_geo1, pred_geo1, ignored_map1, merged_feature1,
+				gt_score2, pred_score2, gt_geo2, pred_geo2, ignored_map2, merged_feature2, epoch):
 		east_loss = self.traditional_east_loss(gt_score1, pred_score1, gt_geo1, pred_geo1, ignored_map1) \
 					+ self.traditional_east_loss(gt_score2, pred_score2, gt_geo2, pred_geo2, ignored_map2)
-		simclr_loss = self.simclr_loss(liner_score1, liner_score2)
+		simclr_loss = self.simclr_loss(merged_feature1, merged_feature2)
 
 		print('east loss is {:.8f}, simclr loss is {:.8f}'.format(east_loss, simclr_loss))
-		return east_loss + simclr_loss
+		# return simclr_loss
+
+		if epoch <100 :
+			return east_loss
+		else :
+			return east_loss + simclr_loss

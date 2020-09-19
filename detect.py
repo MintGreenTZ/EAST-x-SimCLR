@@ -6,6 +6,7 @@ import os
 from dataset import get_rotate_mat
 import numpy as np
 import lanms
+from gaussian_blur import GaussianBlur
 
 
 def resize_img(img):
@@ -143,8 +144,14 @@ def detect(img, model, device):
 	img, ratio_h, ratio_w = resize_img(img)
 	with torch.no_grad():
 		score, geo = model(load_pil(img).to(device))
+
+	score_cp = score.cpu().numpy()[0, 0, ...]
+	# print(score.flatten().shape)
+	j = Image.fromarray(((score_cp - np.min(score_cp.flatten())) / (
+				np.max(score_cp.flatten()) - np.min(score_cp.flatten()) + 1e-8) * 255).astype(np.uint8))
+
 	boxes = get_boxes(score.squeeze(0).cpu().numpy(), geo.squeeze(0).cpu().numpy())
-	return adjust_ratio(boxes, ratio_w, ratio_h)
+	return adjust_ratio(boxes, ratio_w, ratio_h), j	#,score  #打印score map
 
 
 def plot_boxes(img, boxes):
@@ -178,20 +185,36 @@ def detect_dataset(model, device, test_img_path, submit_path):
 			seq.extend([','.join([str(int(b)) for b in box[:-1]]) + '\n' for box in boxes])
 		with open(os.path.join(submit_path, 'res_' + os.path.basename(img_file).replace('.jpg','.txt')), 'w') as f:
 			f.writelines(seq)
+		# break
 
 
 if __name__ == '__main__':
 	img_path    = '../ICDAR_2015/test_img/img_2.jpg'
-	model_path  = './pths/east_vgg16.pth'
-	res_img     = './res.bmp'
+	model_path  = '/home/weiran/ICDAR_2015/simclr15_pths/model_epoch_350_exp_1.pth'
+	res1_img     = './res1.bmp'
+	res2_img 	= './res2.bmp'
 	device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-	model = EAST().to(device)
+	model = EAST(False).to(device)
 	model.load_state_dict(torch.load(model_path))
 	model.eval()
+
 	img = Image.open(img_path)
-	
-	boxes = detect(img, model, device)
-	plot_img = plot_boxes(img, boxes)	
-	plot_img.save(res_img)
+	img = img.convert("RGB")
+	length = 512
+	data_transforms = transforms.Compose([GaussianBlur(kernel_size=int(0.1 * length))])
+	adjust_transform = transforms.Compose([transforms.ColorJitter(0.5, 0.5, 0.5, 0.25)])
+	img1 = adjust_transform(img)
+	print(type(img1))
+	img2 = data_transforms(img1)
+	img2 = Image.fromarray(img2)
+	print(type(img2))
 
+	boxes, j = detect(img1, model, device)
+	j.save('pred_score1.jpg')
+	plot_img = plot_boxes(img1, boxes)
+	plot_img.save(res1_img)
 
+	boxes, j = detect(img2, model, device)
+	j.save('pred_score2.jpg')
+	plot_img = plot_boxes(img2, boxes)
+	plot_img.save(res2_img)

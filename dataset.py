@@ -219,11 +219,13 @@ def crop_img(img, vertices, labels, length):
 		cnt += 1
 		start_w = int(np.random.rand() * remain_w)
 		start_h = int(np.random.rand() * remain_h)
+		if labels.shape == (0,):
+			continue
 		flag = is_cross_text([start_w, start_h], length, new_vertices[labels==1,:])
 	box = (start_w, start_h, start_w + length, start_h + length)
 	region = img.crop(box)
 	if new_vertices.size == 0:
-		return region, new_vertices	
+		return region, new_vertices	, start_w, start_h
 	
 	new_vertices[:,[0,2,4,6]] -= start_w
 	new_vertices[:,[1,3,5,7]] -= start_h
@@ -380,27 +382,22 @@ class custom_dataset(data.Dataset):
 		self.gt_files  = [os.path.join(gt_path, gt_file) for gt_file in sorted(os.listdir(gt_path))]
 		self.scale = scale
 		self.length = length
+		self.s = s;
 
-		color_jitter = transforms.ColorJitter(0.8 * s, 0.8 * s, 0.8 * s, 0.2 * s)
-		data_transforms = transforms.Compose([transforms.RandomResizedCrop(size=length),
-											  transforms.RandomHorizontalFlip(),
-											  transforms.RandomApply([color_jitter], p=0.8),
-											  transforms.RandomGrayscale(p=0.2),
-											  GaussianBlur(kernel_size=int(0.1 * length)),
-											  transforms.ToTensor()])
-		print("custom_dataset __init__ begin")
-		# self.img_files = self.img_files[0:5]
-		print(type(self.img_files[0]))
-		print(type(Image.open(self.img_files[0]).convert("RGB")))
-		print(type(data_transforms(Image.open(self.img_files[0]))))
-		print(type(tensor2PIL(data_transforms(Image.open(self.img_files[0])))))
-		print(tensor2PIL(data_transforms(Image.open(self.img_files[0]))))
 
-		print("len")
-		print(len(self.img_files))
-		self.img_files_i = [tensor2PIL(data_transforms(Image.open(img))) for img in self.img_files]
-		self.img_files_j = [tensor2PIL(data_transforms(Image.open(img))) for img in self.img_files]
-		print("custom_dataset __init__ finished")
+		# print("custom_dataset __init__ begin")
+		# # self.img_files = self.img_files[0:5]
+		# print(type(self.img_files[0]))
+		# print(type(Image.open(self.img_files[0]).convert("RGB")))
+		# print(type(data_transforms(Image.open(self.img_files[0]))))
+		# print(type(tensor2PIL(data_transforms(Image.open(self.img_files[0])))))
+		# print(tensor2PIL(data_transforms(Image.open(self.img_files[0]))))
+		#
+		# print("len")
+		# print(len(self.img_files))
+		# self.img_files_i = [tensor2PIL(data_transforms(Image.open(img))) for img in self.img_files]
+		# self.img_files_j = [tensor2PIL(data_transforms(Image.open(img))) for img in self.img_files]
+		# print("custom_dataset __init__ finished")
 
 	def __len__(self):
 		return len(self.img_files)
@@ -409,26 +406,47 @@ class custom_dataset(data.Dataset):
 		with open(self.gt_files[index], 'r') as f:
 			lines = f.readlines()
 
-		adjust_transform = transforms.Compose([transforms.ColorJitter(0.5, 0.5, 0.5, 0.25), \
-											   transforms.ToTensor(), \
-											   transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))])
+		color_jitter = transforms.ColorJitter(0.8 * self.s, 0.8 * self.s, 0.8 * self.s, 0.2 * self.s)
+		data_transforms = transforms.Compose([#transforms.RandomResizedCrop(size=self.length),
+											  #transforms.RandomHorizontalFlip(),
+											  #transforms.RandomApply([color_jitter], p=0.8),
+											  #transforms.RandomGrayscale(p=0.2),
+											  GaussianBlur(kernel_size=int(0.1 * self.length))])
+											  # transforms.ToTensor()])
 
+		adjust_transform = transforms.Compose([transforms.ColorJitter(0.5, 0.5, 0.5, 0.25)])
+											   # transforms.ToTensor(), \
+											   #transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))])
+
+		totensor = transforms.Compose([transforms.ToTensor(),\
+									  transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))])
+
+
+		img_ori = Image.open(self.img_files[index])
+		img_ori = img_ori.convert("RGB")
 		vertices, labels = extract_vertices(lines)
-		img1 = self.img_files_i[index]
 		# img1 = Image.open(self.img_files[index])
-		img1, vertices = adjust_height(img1, vertices)
+
+		img1, vertices = adjust_height(img_ori, vertices)
 		img1, vertices = rotate_img(img1, vertices)
 		img1, vertices = crop_img(img1, vertices, labels, self.length)
+		img1 = adjust_transform(img1)
 		score_map1, geo_map1, ignored_map1 = get_score_geo(img1, vertices, labels, self.scale, self.length)
 
-		vertices, labels = extract_vertices(lines)
-		img2 = self.img_files_j[index]
+		# vertices, labels = extract_vertices(lines)
 		# img2 = Image.open(self.img_files[index])
-		img2, vertices = adjust_height(img2, vertices)
-		img2, vertices = rotate_img(img2, vertices)
-		img2, vertices = crop_img(img2, vertices, labels, self.length)
+		# img2, vertices = adjust_height(img2, vertices)
+		# img2, vertices = rotate_img(img2, vertices)
+		# img2, vertices = crop_img(img2, vertices, labels, self.length)
+		# score_map2, geo_map2, ignored_map2 = get_score_geo(img2, vertices, labels, self.scale, self.length)
+
+		img2 = data_transforms(img1)
+		img2 = Image.fromarray(img2)
 		score_map2, geo_map2, ignored_map2 = get_score_geo(img2, vertices, labels, self.scale, self.length)
 
-		return adjust_transform(img1), score_map1, geo_map1, ignored_map1, \
-			   adjust_transform(img2), score_map2, geo_map2, ignored_map2
+		img1 = totensor(img1)
+		img2 = totensor(img2)
+
+		return img1, score_map1, geo_map1, ignored_map1, \
+			   img2, score_map2, geo_map2, ignored_map2
 

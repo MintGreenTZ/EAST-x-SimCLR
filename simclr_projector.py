@@ -16,7 +16,8 @@ class SimCLRProjector(nn.Module):
         self.l2 = nn.Linear(num_ftrs, out_dim)
 
     def forward(self, x):
-        x = self.l1(x)
+        linenered_score = x.reshape((x.size(0), -1))  # 下接逆变换（）
+        x = self.l1(linenered_score)
         x = F.relu(x)
         x = self.l2(x)
         return x
