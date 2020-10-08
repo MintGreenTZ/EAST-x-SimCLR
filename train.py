@@ -2,6 +2,7 @@ import torch
 from torch.utils import data
 from torch import nn
 from torch.optim import lr_scheduler
+from torchtools.optim import Lookahead, RAdam, PlainRAdam, AdamW, Ralamb, RangerLars
 from torchvision import transforms
 from dataset import custom_dataset
 from PIL import Image
@@ -27,8 +28,10 @@ def train(train_img_path, train_gt_path, pths_path, batch_size, lr, num_workers,
         model = nn.DataParallel(model)
         data_parallel = True
     model.to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[epoch_iter // 2], gamma=0.1)
+    # optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    optimizer = RangerLars(model.parameters())
+    # optimizer = Lookahead(base_optimizer=optimizer, k=5, alpha=0.5) #lookahead
+    #scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[epoch_iter // 2], gamma=0.1)
 
     # checkpiont 断点训练
     # checkpoint = torch.load('/home/weiran/ICDAR_2015/simclr15_ck_pths/checkpoint')
@@ -56,7 +59,7 @@ def train(train_img_path, train_gt_path, pths_path, batch_size, lr, num_workers,
 
     for epoch in range(epoch_iter):
         model.train()
-        scheduler.step()
+        #scheduler.step()
         epoch_loss = 0
         epoch_time = time.time()
         for i, (img1, gt_score1, gt_geo1, ignored_map1, img2, gt_score2, gt_geo2, ignored_map2) in enumerate(train_loader):
@@ -95,8 +98,8 @@ def train(train_img_path, train_gt_path, pths_path, batch_size, lr, num_workers,
             state_dict = model.module.state_dict() if data_parallel else model.state_dict()
             torch.save(state_dict, os.path.join(pths_path, 'model_epoch_{}.pth'.format(epoch + 1)))
             state = {'model': model.module.state_dict() if data_parallel else model.state_dict(), \
-                     'optimizer': optimizer.state_dict(), 'epoch': epoch, \
-                     'scheduler': scheduler.state_dict()}
+                     'optimizer': optimizer.state_dict(), 'epoch': epoch}#, \
+                     #'scheduler': scheduler.state_dict()}
             torch.save(state, checkpoint_path)
 
 if __name__ == '__main__':
@@ -107,7 +110,7 @@ if __name__ == '__main__':
     batch_size = 10
     lr = 1e-3
     num_workers = 4
-    epoch_iter = 600
+    epoch_iter = 800
     save_interval = 50
     s = 1
     train(train_img_path, train_gt_path, pths_path, batch_size, lr, num_workers, epoch_iter, save_interval)

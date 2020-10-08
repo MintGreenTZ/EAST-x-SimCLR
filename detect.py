@@ -7,7 +7,7 @@ from dataset import get_rotate_mat
 import numpy as np
 import lanms
 from gaussian_blur import GaussianBlur
-
+import time
 
 def resize_img(img):
 	'''resize image to be divisible by 32
@@ -143,7 +143,7 @@ def detect(img, model, device):
 	'''
 	img, ratio_h, ratio_w = resize_img(img)
 	with torch.no_grad():
-		score, geo = model(load_pil(img).to(device))
+		score, geo, merged_feature = model(load_pil(img).to(device))
 
 	score_cp = score.cpu().numpy()[0, 0, ...]
 	# print(score.flatten().shape)
@@ -166,6 +166,8 @@ def plot_boxes(img, boxes):
 	return img
 
 
+
+
 def detect_dataset(model, device, test_img_path, submit_path):
 	'''detection on whole dataset, save .txt results in submit_path
 	Input:
@@ -176,21 +178,29 @@ def detect_dataset(model, device, test_img_path, submit_path):
 	'''
 	img_files = os.listdir(test_img_path)
 	img_files = sorted([os.path.join(test_img_path, img_file) for img_file in img_files])
-	
+
+	avg_time = 0
+
 	for i, img_file in enumerate(img_files):
-		print('evaluating {} image'.format(i), end='\r')
-		boxes = detect(Image.open(img_file), model, device)
+		# print('evaluating {} image'.format(i), end='\r')
+		start_time = time.time()
+		boxes, j = detect(Image.open(img_file), model, device)
+		cost_time = time.time() - start_time
+		avg_time += cost_time
 		seq = []
 		if boxes is not None:
 			seq.extend([','.join([str(int(b)) for b in box[:-1]]) + '\n' for box in boxes])
 		with open(os.path.join(submit_path, 'res_' + os.path.basename(img_file).replace('.jpg','.txt')), 'w') as f:
 			f.writelines(seq)
-		# break
+		print('evaluating {} image'.format(i), end='\r')
 
+		# break
+	avg_time = avg_time/len(img_files)
+	print(avg_time)
 
 if __name__ == '__main__':
 	img_path    = '../ICDAR_2015/test_img/img_2.jpg'
-	model_path  = '/home/weiran/ICDAR_2015/simclr15_pths/model_epoch_350_exp_1.pth'
+	model_path  = '/home/weiran/ICDAR_2015/simclr15_pths/model_epoch_400.pth'
 	res1_img     = './res1.bmp'
 	res2_img 	= './res2.bmp'
 	device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -204,10 +214,10 @@ if __name__ == '__main__':
 	data_transforms = transforms.Compose([GaussianBlur(kernel_size=int(0.1 * length))])
 	adjust_transform = transforms.Compose([transforms.ColorJitter(0.5, 0.5, 0.5, 0.25)])
 	img1 = adjust_transform(img)
-	print(type(img1))
+	# print(type(img1))
 	img2 = data_transforms(img1)
 	img2 = Image.fromarray(img2)
-	print(type(img2))
+	# print(type(img2))
 
 	boxes, j = detect(img1, model, device)
 	j.save('pred_score1.jpg')

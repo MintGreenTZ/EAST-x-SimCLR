@@ -141,9 +141,9 @@ class Loss(nn.Module):
 		simclr_loss = self.simclr_loss(merged_feature1, merged_feature2)
 
 		print('east loss is {:.8f}, simclr loss is {:.8f}'.format(east_loss, simclr_loss))
-		# return simclr_loss
+		# return east_loss + simclr_loss
 
 		if epoch <100 :
 			return east_loss
 		else :
-			return east_loss + simclr_loss
+			return east_loss + simclr_loss #权重不加这里

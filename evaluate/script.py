@@ -151,6 +151,8 @@ def evaluate_method(gtFilePath, submFilePath, evaluationParams):
     
     arrGlobalConfidences = [];
     arrGlobalMatches = [];
+    dataset_name = 'ICDAR2015'
+    savestr = ''
 
     for resFile in gt:
         
@@ -274,7 +276,15 @@ def evaluate_method(gtFilePath, submFilePath, evaluationParams):
             if evaluationParams['CONFIDENCES'] and evaluationParams['PER_SAMPLE_RESULTS']:
                 sampleAP = compute_ap(arrSampleConfidences, arrSampleMatch, numGtCare )                    
 
-        hmean = 0 if (precision + recall)==0 else 2.0 * precision * recall / (precision + recall)                
+        hmean = 0 if (precision + recall)==0 else 2.0 * precision * recall / (precision + recall)
+
+        # 保存每张图片的得分
+        # print(gt)
+        savestr = savestr + resFile + ',' + 'recall = ' + str(float(recall)) + ',' + 'precision = ' + str(
+            float(precision)) + ',' + 'hmean = ' + str(float(hmean)) + '\n'
+        savef = open(dataset_name, 'w')
+        savef.write(savestr)
+        # savef.close()
 
         matchedSum += detMatched
         numGlobalCareGt += numGtCare

@@ -409,9 +409,9 @@ class custom_dataset(data.Dataset):
 		color_jitter = transforms.ColorJitter(0.8 * self.s, 0.8 * self.s, 0.8 * self.s, 0.2 * self.s)
 		data_transforms = transforms.Compose([#transforms.RandomResizedCrop(size=self.length),
 											  #transforms.RandomHorizontalFlip(),
-											  #transforms.RandomApply([color_jitter], p=0.8),
-											  #transforms.RandomGrayscale(p=0.2),
-											  GaussianBlur(kernel_size=int(0.1 * self.length))])
+											  transforms.RandomApply([color_jitter], p=0.8)])
+											  # transforms.RandomGrayscale(p=0.2),
+											  # GaussianBlur(kernel_size=int(0.1 * self.length))])
 											  # transforms.ToTensor()])
 
 		adjust_transform = transforms.Compose([transforms.ColorJitter(0.5, 0.5, 0.5, 0.25)])
@@ -441,7 +441,8 @@ class custom_dataset(data.Dataset):
 		# score_map2, geo_map2, ignored_map2 = get_score_geo(img2, vertices, labels, self.scale, self.length)
 
 		img2 = data_transforms(img1)
-		img2 = Image.fromarray(img2)
+		if type(img1) != type(img2):
+			img2 = Image.fromarray(img2)
 		score_map2, geo_map2, ignored_map2 = get_score_geo(img2, vertices, labels, self.scale, self.length)
 
 		img1 = totensor(img1)
