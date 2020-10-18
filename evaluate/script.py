@@ -2,6 +2,11 @@ from collections import namedtuple
 import rrc_evaluation_funcs
 import importlib
 
+immmigrated_hmean = -1e15
+
+def get_immmigrated_hmean():
+    return immmigrated_hmean
+
 def evaluation_imports():
     """
     evaluation_imports: Dictionary ( key = module name , value = alias  )  with python modules used in the evaluation. 
@@ -318,9 +323,10 @@ def evaluate_method(gtFilePath, submFilePath, evaluationParams):
     methodMetrics = {'precision':methodPrecision, 'recall':methodRecall,'hmean': methodHmean, 'AP': AP  }
 
     resDict = {'calculated':True,'Message':'','method': methodMetrics,'per_sample': perSampleMetrics}
-    
-    
-    return resDict;
+
+    immmigrated_hmean = methodHmean
+
+    return resDict
 
 
 

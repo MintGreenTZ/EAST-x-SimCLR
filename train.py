@@ -9,10 +9,14 @@ from PIL import Image
 from model import EAST
 from loss import Loss
 from gaussian_blur import GaussianBlur
+from eval import eval_model, model_name, test_img_path, submit_path
+from evaluate.script import get_immmigrated_hmean
 import os
 import time
 import numpy as np
 
+best_immmigrated_hmean = -1e15
+best_epoch = 0
 
 def train(train_img_path, train_gt_path, pths_path, batch_size, lr, num_workers, epoch_iter, interval):
     file_num = len(os.listdir(train_img_path))
@@ -57,7 +61,7 @@ def train(train_img_path, train_gt_path, pths_path, batch_size, lr, num_workers,
     #
     # print("img finished")
 
-    best_loss = 1e15
+    best_immmigrated_hmean = -1e15
 
     for epoch in range(epoch_iter):
         model.train()
@@ -104,10 +108,17 @@ def train(train_img_path, train_gt_path, pths_path, batch_size, lr, num_workers,
                      #'scheduler': scheduler.state_dict()}
             torch.save(state, checkpoint_path)
 
-        # if epoch > 400 and epoch_loss / int(file_num / batch_size) < best_loss:
-        #     best_loss = epoch_loss / int(file_num / batch_size)
-        #     torch.save(state_dict, os.path.join(pths_path, 'best.pth'))
-        #     print("It's best model ever since. I've saved.")
+        if epoch > -1:
+            eval_model(model_name, test_img_path, submit_path)
+            immmigrated_hmean = get_immmigrated_hmean()
+            if (immmigrated_hmean > best_immmigrated_hmean):
+                best_immmigrated_hmean = immmigrated_hmean
+                best_epoch = epoch
+                torch.save(state_dict, os.path.join(pths_path, 'best.pth'))
+                print("The hmean of best model ever since is %d now" % best_immmigrated_hmean)
+
+            print("Best epoch ever since is the %d-th epoch" % best_epoch)
+
 
 if __name__ == '__main__':
     train_img_path = os.path.abspath('../ICDAR_2015/train_img')

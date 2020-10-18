@@ -32,9 +32,9 @@ def eval_model(model_name, test_img_path, submit_path, save_flag=True):
 	if not save_flag:
 		shutil.rmtree(submit_path)
 
+model_name = '/home/weiran/ICDAR_2015/13+15pths/model_epoch_600.pth'
+test_img_path = os.path.abspath('/home/weiran/ICDAR_2015/test_img')
+submit_path = './submit'
 
 if __name__ == '__main__':
-	model_name = '/home/weiran/ICDAR_2015/13+15_pths/model_epoch_600.pth'
-	test_img_path = os.path.abspath('/home/weiran/ICDAR_2015/test_img')
-	submit_path = './submit'
 	eval_model(model_name, test_img_path, submit_path)
