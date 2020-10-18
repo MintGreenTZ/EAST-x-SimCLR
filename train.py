@@ -57,6 +57,8 @@ def train(train_img_path, train_gt_path, pths_path, batch_size, lr, num_workers,
     #
     # print("img finished")
 
+    best_loss = 1e15
+
     for epoch in range(epoch_iter):
         model.train()
         #scheduler.step()
@@ -94,13 +96,18 @@ def train(train_img_path, train_gt_path, pths_path, batch_size, lr, num_workers,
                                                                   time.time() - epoch_time))
         print(time.asctime(time.localtime(time.time())))
         print('=' * 50)
-        if (epoch + 1) % interval == 0:
+        if epoch > 399 and (epoch + 1) % interval == 0:
             state_dict = model.module.state_dict() if data_parallel else model.state_dict()
             torch.save(state_dict, os.path.join(pths_path, 'model_epoch_{}.pth'.format(epoch + 1)))
             state = {'model': model.module.state_dict() if data_parallel else model.state_dict(), \
                      'optimizer': optimizer.state_dict(), 'epoch': epoch}#, \
                      #'scheduler': scheduler.state_dict()}
             torch.save(state, checkpoint_path)
+
+        # if epoch > 400 and epoch_loss / int(file_num / batch_size) < best_loss:
+        #     best_loss = epoch_loss / int(file_num / batch_size)
+        #     torch.save(state_dict, os.path.join(pths_path, 'best.pth'))
+        #     print("It's best model ever since. I've saved.")
 
 if __name__ == '__main__':
     train_img_path = os.path.abspath('../ICDAR_2015/train_img')
@@ -110,7 +117,7 @@ if __name__ == '__main__':
     batch_size = 10
     lr = 1e-3
     num_workers = 4
-    epoch_iter = 800
-    save_interval = 50
+    epoch_iter = 600
+    save_interval = 20
     s = 1
     train(train_img_path, train_gt_path, pths_path, batch_size, lr, num_workers, epoch_iter, save_interval)

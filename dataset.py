@@ -406,12 +406,12 @@ class custom_dataset(data.Dataset):
 		with open(self.gt_files[index], 'r') as f:
 			lines = f.readlines()
 
-		color_jitter = transforms.ColorJitter(0.8 * self.s, 0.8 * self.s, 0.8 * self.s, 0.2 * self.s)
+		color_jitter = transforms.ColorJitter(0.5 * self.s, 0.5 * self.s, 0.5 * self.s, 0.2 * self.s)  # 前三个0.8
 		data_transforms = transforms.Compose([#transforms.RandomResizedCrop(size=self.length),
-											  #transforms.RandomHorizontalFlip(),
-											  transforms.RandomApply([color_jitter], p=0.8)])
-											  # transforms.RandomGrayscale(p=0.2),
-											  # GaussianBlur(kernel_size=int(0.1 * self.length))])
+											  # transforms.RandomHorizontalFlip(),
+											  transforms.RandomApply([color_jitter], p=0.8),
+											  transforms.RandomGrayscale(p=0.2),
+											  GaussianBlur(kernel_size=int(0.1 * self.length))])
 											  # transforms.ToTensor()])
 
 		adjust_transform = transforms.Compose([transforms.ColorJitter(0.5, 0.5, 0.5, 0.25)])
@@ -427,10 +427,19 @@ class custom_dataset(data.Dataset):
 		vertices, labels = extract_vertices(lines)
 		# img1 = Image.open(self.img_files[index])
 
-		img1, vertices = adjust_height(img_ori, vertices)
-		img1, vertices = rotate_img(img1, vertices)
-		img1, vertices = crop_img(img1, vertices, labels, self.length)
-		img1 = adjust_transform(img1)
+		# img1, vertices = adjust_height(img_ori, vertices)
+		# img1, vertices = rotate_img(img1, vertices)
+		# img1, vertices = crop_img(img1, vertices, labels, self.length)
+		# img1 = adjust_transform(img1)
+		# score_map1, geo_map1, ignored_map1 = get_score_geo(img1, vertices, labels, self.scale, self.length)
+
+		img_adjusted, vertices = adjust_height(img_ori, vertices)
+		img_adjusted, vertices = rotate_img(img_adjusted, vertices)
+		img_adjusted, vertices = crop_img(img_adjusted, vertices, labels, self.length)
+		img_adjusted = adjust_transform(img_adjusted)
+		img1 = data_transforms(img_adjusted)
+		if type(img_adjusted) != type(img1):
+			img1 = Image.fromarray(img1)
 		score_map1, geo_map1, ignored_map1 = get_score_geo(img1, vertices, labels, self.scale, self.length)
 
 		# vertices, labels = extract_vertices(lines)
@@ -440,8 +449,8 @@ class custom_dataset(data.Dataset):
 		# img2, vertices = crop_img(img2, vertices, labels, self.length)
 		# score_map2, geo_map2, ignored_map2 = get_score_geo(img2, vertices, labels, self.scale, self.length)
 
-		img2 = data_transforms(img1)
-		if type(img1) != type(img2):
+		img2 = data_transforms(img_adjusted)
+		if type(img_adjusted) != type(img2):
 			img2 = Image.fromarray(img2)
 		score_map2, geo_map2, ignored_map2 = get_score_geo(img2, vertices, labels, self.scale, self.length)
 

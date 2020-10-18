@@ -143,7 +143,7 @@ class Loss(nn.Module):
 		print('east loss is {:.8f}, simclr loss is {:.8f}'.format(east_loss, simclr_loss))
 		# return east_loss + simclr_loss
 
-		if epoch <100 :
+		if epoch <101 :
 			return east_loss
 		else :
 			return east_loss + simclr_loss #权重不加这里

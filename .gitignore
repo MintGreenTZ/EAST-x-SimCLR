@@ -2,4 +2,7 @@
 
 /venv/
 /submit/
+/evaluate/gt.zip
 ICDAR2015
+*.jpg
+*.bmp

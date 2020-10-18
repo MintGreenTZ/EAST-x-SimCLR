@@ -199,8 +199,8 @@ def detect_dataset(model, device, test_img_path, submit_path):
 	print(avg_time)
 
 if __name__ == '__main__':
-	img_path    = '../ICDAR_2015/test_img/img_2.jpg'
-	model_path  = '/home/weiran/ICDAR_2015/simclr15_pths/model_epoch_400.pth'
+	img_path    = '../ICDAR_2015/test_img/img_465.jpg'
+	model_path  = '/home/weiran/ICDAR_2015/simclr15_pths/model_epoch_750_exp_11.pth'
 	res1_img     = './res1.bmp'
 	res2_img 	= './res2.bmp'
 	device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -212,19 +212,27 @@ if __name__ == '__main__':
 	img = img.convert("RGB")
 	length = 512
 	data_transforms = transforms.Compose([GaussianBlur(kernel_size=int(0.1 * length))])
-	adjust_transform = transforms.Compose([transforms.ColorJitter(0.5, 0.5, 0.5, 0.25)])
+	adjust_transform = transforms.Compose([transforms.ColorJitter(0.8, 0.8, 0.8, 0.25)])
 	img1 = adjust_transform(img)
 	# print(type(img1))
 	img2 = data_transforms(img1)
 	img2 = Image.fromarray(img2)
 	# print(type(img2))
+	# img.save('img.jpg')
+	# img1.save('img1.jpg')
+	# img2.save('img2.jpg')
+
+	boxes, j = detect(img, model, device)
+	# j.save('pred_score1.jpg')
+	plot_img = plot_boxes(img, boxes)
+	plot_img.save('img.jpg')
 
 	boxes, j = detect(img1, model, device)
-	j.save('pred_score1.jpg')
+	# j.save('pred_score1.jpg')
 	plot_img = plot_boxes(img1, boxes)
 	plot_img.save(res1_img)
 
 	boxes, j = detect(img2, model, device)
-	j.save('pred_score2.jpg')
+	# j.save('pred_score2.jpg')
 	plot_img = plot_boxes(img2, boxes)
 	plot_img.save(res2_img)
