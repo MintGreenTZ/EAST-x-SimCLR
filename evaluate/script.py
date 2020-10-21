@@ -1,11 +1,9 @@
 from collections import namedtuple
 import rrc_evaluation_funcs
 import importlib
-
-immmigrated_hmean = -1e15
-
-def get_immmigrated_hmean():
-    return immmigrated_hmean
+import sys
+sys.path.append("..")
+import glovar
 
 def evaluation_imports():
     """
@@ -324,7 +322,13 @@ def evaluate_method(gtFilePath, submFilePath, evaluationParams):
 
     resDict = {'calculated':True,'Message':'','method': methodMetrics,'per_sample': perSampleMetrics}
 
-    immmigrated_hmean = methodHmean
+    # glovar.change_hmean_to(methodHmean)
+    #
+    # print("new hmean = %.5f" % methodHmean)
+    #
+    # print("new glovar.immigrated_hmean = %.5f" % glovar.get_hmean())
+    #
+    # print(glovar.print_it())
 
     return resDict
 

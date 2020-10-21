@@ -406,7 +406,7 @@ class custom_dataset(data.Dataset):
 		with open(self.gt_files[index], 'r') as f:
 			lines = f.readlines()
 
-		color_jitter = transforms.ColorJitter(0.5 * self.s, 0.5 * self.s, 0.5 * self.s, 0.2 * self.s)  # 前三个0.8
+		color_jitter = transforms.ColorJitter(0.8 * self.s, 0.8 * self.s, 0.8 * self.s, 0.2 * self.s)
 		data_transforms = transforms.Compose([#transforms.RandomResizedCrop(size=self.length),
 											  # transforms.RandomHorizontalFlip(),
 											  transforms.RandomApply([color_jitter], p=0.8),

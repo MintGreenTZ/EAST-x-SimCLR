@@ -163,6 +163,7 @@ def plot_boxes(img, boxes):
 	draw = ImageDraw.Draw(img)
 	for box in boxes:
 		draw.polygon([box[0], box[1], box[2], box[3], box[4], box[5], box[6], box[7]], outline=(0,255,0))
+		draw.polygon([box[0]+1, box[1]+1, box[2]+1, box[3]+1, box[4]+1, box[5]+1, box[6]+1, box[7]+1], outline=(0, 255, 0))
 	return img
 
 
@@ -199,10 +200,12 @@ def detect_dataset(model, device, test_img_path, submit_path):
 	print(avg_time)
 
 if __name__ == '__main__':
-	img_path    = '../ICDAR_2015/test_img/img_465.jpg'
+	img_path    = '../ICDAR_2015/test_img/img_15.jpg'
+	# model_path = '/home/weiran/EAST/pths/model_epoch_600.pth'
 	model_path  = '/home/weiran/ICDAR_2015/simclr15_pths/model_epoch_750_exp_11.pth'
 	res1_img     = './res1.bmp'
 	res2_img 	= './res2.bmp'
+	img_ori = './img_15.jpg'
 	device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 	model = EAST(False).to(device)
 	model.load_state_dict(torch.load(model_path))
@@ -225,14 +228,14 @@ if __name__ == '__main__':
 	boxes, j = detect(img, model, device)
 	# j.save('pred_score1.jpg')
 	plot_img = plot_boxes(img, boxes)
-	plot_img.save('img.jpg')
+	plot_img.save(img_ori)
 
-	boxes, j = detect(img1, model, device)
+	# boxes, j = detect(img1, model, device)
 	# j.save('pred_score1.jpg')
-	plot_img = plot_boxes(img1, boxes)
-	plot_img.save(res1_img)
-
-	boxes, j = detect(img2, model, device)
+	# plot_img = plot_boxes(img1, boxes)
+	# plot_img.save(res1_img)
+	#
+	# boxes, j = detect(img2, model, device)
 	# j.save('pred_score2.jpg')
-	plot_img = plot_boxes(img2, boxes)
-	plot_img.save(res2_img)
+	# plot_img = plot_boxes(img2, boxes)
+	# plot_img.save(res2_img)

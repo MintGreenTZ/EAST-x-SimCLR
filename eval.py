@@ -26,11 +26,17 @@ def eval_model(model_name, test_img_path, submit_path, save_flag=True):
 	os.chdir('../')
 	res = subprocess.getoutput('python ./evaluate/script.py –g=./evaluate/gt.zip –s=./submit.zip')
 	print(res)
+	p1 = res.find("hmean")
+	p2 = res.find("AP")
+	hmean = float(res[p1+8 :p2-3])
+	# print("hmean is %.10f" % hmean)
 	os.remove('./submit.zip')
 	print('eval time is {}'.format(time.time()-start_time))	
 
 	if not save_flag:
 		shutil.rmtree(submit_path)
+
+	return hmean
 
 model_name = '/home/weiran/ICDAR_2015/13+15pths/model_epoch_600.pth'
 test_img_path = os.path.abspath('/home/weiran/ICDAR_2015/test_img')
